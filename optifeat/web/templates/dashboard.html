@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}OptiFeat - داشبورد{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>انتخاب ویژگی با مدل کوله‌پشتی</h1>
+    <form class="upload-form" method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="dataset">آپلود دیتاست (CSV):</label>
+            <input type="file" id="dataset" name="dataset" required>
+        </div>
+        <div class="form-group">
+            <label for="target_column">ستون هدف:</label>
+            <input type="text" id="target_column" name="target_column" placeholder="target">
+        </div>
+        <div class="form-group">
+            <label for="time_budget">بودجه زمانی (ثانیه):</label>
+            <input type="number" step="0.1" id="time_budget" name="time_budget" value="5">
+        </div>
+        <button type="submit" class="btn-primary">شروع پردازش</button>
+    </form>
+</section>
+
+{% if result %}
+<section class="card">
+    <h2>نتایج اجرا</h2>
+    <p><strong>دیتاست:</strong> {{ result.metadata.dataset_name }}</p>
+    <p><strong>ستون هدف:</strong> {{ result.metadata.target_column }}</p>
+    <p><strong>دقت مجموعه انتخاب شده:</strong> {{ '%.3f'|format(result.best_evaluation.accuracy) }}</p>
+    <p><strong>ویژگی‌های انتخاب شده:</strong> {{ result.selected_features | join(', ') }}</p>
+
+    <h3>پیشرفت پردازش</h3>
+    <ul class="steps">
+        {% for step in result.steps %}
+            <li>{{ step }}</li>
+        {% endfor %}
+    </ul>
+
+    <h3>تحلیل ویژگی‌ها</h3>
+    <div class="chart-container">
+        <canvas id="candidateChart"></canvas>
+    </div>
+</section>
+<script>
+    window.optifeatCandidates = {{ result.candidate_summary | tojson }};
+</script>
+{% endif %}
+
+<section class="card">
+    <h2>تاریخچه اخیر</h2>
+    {% if history %}
+        <table class="history-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>نام دیتاست</th>
+                    <th>دقت</th>
+                    <th>بودجه زمانی</th>
+                    <th>ویژگی‌ها</th>
+                    <th>دانلود</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for item in history %}
+                <tr>
+                    <td>{{ item.id }}</td>
+                    <td>{{ item.dataset_name }}</td>
+                    <td>{{ '%.3f'|format(item.accuracy) }}</td>
+                    <td>{{ item.time_budget }}</td>
+                    <td>{{ item.selected_features | join(', ') }}</td>
+                    <td><a class="btn-secondary" href="{{ url_for('dashboard.download_features', run_id=item.id) }}">دانلود</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>هنوز اجرای ثبت شده‌ای وجود ندارد.</p>
+    {% endif %}
+</section>
+{% endblock %}

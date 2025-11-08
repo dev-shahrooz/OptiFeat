@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}OptiFeat - تاریخچه{% endblock %}
+{% block content %}
+<section class="card">
+    <h1>تاریخچه اجراها</h1>
+    {% if history %}
+        <div class="history-list">
+        {% for item in history %}
+            <div class="history-item">
+                <h3>{{ item.dataset_name }} <small>#{{ item.id }}</small></h3>
+                <p>دقت: {{ '%.3f'|format(item.accuracy) }}</p>
+                <p>بودجه زمانی: {{ item.time_budget }}</p>
+                <p>ویژگی‌ها: {{ item.selected_features | join(', ') }}</p>
+                <details>
+                    <summary>گزارش مراحل</summary>
+                    <ul>
+                        {% for step in item.steps %}
+                            <li>{{ step }}</li>
+                        {% endfor %}
+                    </ul>
+                </details>
+            </div>
+        {% endfor %}
+        </div>
+    {% else %}
+        <p>هنوز تاریخچه‌ای ثبت نشده است.</p>
+    {% endif %}
+</section>
+{% endblock %}
