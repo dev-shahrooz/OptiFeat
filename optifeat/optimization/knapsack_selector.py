@@ -34,7 +34,7 @@ class KnapsackSelector:
             return KnapsackResult(selected_features=[], total_value=0.0, total_cost=0.0)
 
         # Discretize the budget to allow dynamic programming on floats.
-        scale_factor = 100
+        scale_factor = 10000
         capacity = int(self.time_budget * scale_factor)
         weights = [int(c.cost * scale_factor) for c in candidates]
         values = [c.value for c in candidates]

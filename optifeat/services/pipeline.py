@@ -83,7 +83,7 @@ class OptimizationPipeline:
     ) -> List[FeatureCandidate]:
         candidates: List[FeatureCandidate] = []
         for name, evaluation in evaluations.items():
-            cost = max(evaluation.elapsed_time, 1e-3)
+            cost = max(evaluation.elapsed_time, 0.005)
             candidates.append(
                 FeatureCandidate(name=name, value=evaluation.accuracy, cost=cost)
             )
