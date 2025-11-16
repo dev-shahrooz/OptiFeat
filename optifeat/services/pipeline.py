@@ -7,7 +7,11 @@ from typing import Dict, Iterable, List
 
 import pandas as pd
 
-from optifeat.config import DEFAULT_TIME_BUDGET
+from optifeat.config import (
+    DEFAULT_MIN_COST_MS,
+    DEFAULT_SCALE_FACTOR_MS,
+    DEFAULT_TIME_BUDGET,
+)
 from optifeat.data.dataset_loader import DatasetLoader
 from optifeat.modeling.evaluator import FeatureEvaluation, ModelEvaluator
 from optifeat.optimization.knapsack_selector import FeatureCandidate, KnapsackSelector
@@ -22,7 +26,17 @@ class PipelineResult:
     best_evaluation: FeatureEvaluation
     selected_features: List[str]
     candidate_summary: List[dict]
+    total_candidate_cost_ms: int
+    selected_cost_ms: int
     steps: List[str] = field(default_factory=list)
+
+    @property
+    def total_candidate_cost_seconds(self) -> float:
+        return self.total_candidate_cost_ms / 1000.0
+
+    @property
+    def selected_cost_seconds(self) -> float:
+        return self.selected_cost_ms / 1000.0
 
 
 class OptimizationPipeline:
@@ -79,13 +93,17 @@ class OptimizationPipeline:
         return evaluations
 
     def _create_candidates(
-        self, evaluations: Dict[str, FeatureEvaluation]
+        self,
+        evaluations: Dict[str, FeatureEvaluation],
+        *,
+        min_cost_ms: int,
     ) -> List[FeatureCandidate]:
         candidates: List[FeatureCandidate] = []
         for name, evaluation in evaluations.items():
-            cost = max(evaluation.elapsed_time, 0.005)
+            elapsed_ms = int(evaluation.elapsed_time * 1000)
+            cost_ms = max(elapsed_ms, min_cost_ms)
             candidates.append(
-                FeatureCandidate(name=name, value=evaluation.accuracy, cost=cost)
+                FeatureCandidate(name=name, value=evaluation.accuracy, cost_ms=cost_ms)
             )
         return candidates
 
@@ -95,6 +113,8 @@ class OptimizationPipeline:
         *,
         target_column: str,
         time_budget: float = DEFAULT_TIME_BUDGET,
+        min_cost_ms: int = DEFAULT_MIN_COST_MS,
+        scale_factor_ms: int = DEFAULT_SCALE_FACTOR_MS,
     ) -> PipelineResult:
         steps: List[str] = []
         self._log(steps, "Loading dataset ...")
@@ -116,8 +136,14 @@ class OptimizationPipeline:
         self._log(steps, f"{len(evaluations)} ویژگی تحلیل شد.")
 
         self._log(steps, "Preparing knapsack candidates ...")
-        candidates = self._create_candidates(evaluations)
-        selector = KnapsackSelector(time_budget=time_budget)
+        min_cost_ms = max(1, int(min_cost_ms))
+        scale_factor_ms = max(1, int(scale_factor_ms))
+        candidates = self._create_candidates(
+            evaluations, min_cost_ms=min_cost_ms
+        )
+        selector = KnapsackSelector(
+            time_budget=time_budget, time_unit_ms=scale_factor_ms
+        )
 
         self._log(steps, "Running knapsack optimization ...")
         result = selector.select(candidates)
@@ -147,9 +173,16 @@ class OptimizationPipeline:
             "num_features": metadata.num_features,
             "target_column": target_column,
             "time_budget": time_budget,
+            "time_budget_ms": int(time_budget * 1000),
+            "min_cost_ms": min_cost_ms,
+            "scale_factor_ms": scale_factor_ms,
         }
 
         candidate_frame = describe_candidates(candidates)
+        total_candidate_cost_ms = (
+            int(candidate_frame["cost_ms"].sum()) if not candidate_frame.empty else 0
+        )
+        selected_cost_ms = result.total_cost_ms
 
         database.record_run(
             dataset_name=metadata.path.name,
@@ -159,6 +192,8 @@ class OptimizationPipeline:
             elapsed_time=best_evaluation.elapsed_time,
             selected_features=selected_features,
             steps=steps,
+            total_cost_all_features=total_candidate_cost_ms / 1000.0,
+            selected_cost=selected_cost_ms / 1000.0,
         )
 
         return PipelineResult(
@@ -167,13 +202,24 @@ class OptimizationPipeline:
             selected_features=selected_features,
             candidate_summary=candidate_frame.to_dict(orient="records"),
             steps=steps,
+            total_candidate_cost_ms=total_candidate_cost_ms,
+            selected_cost_ms=selected_cost_ms,
         )
 
 
 def describe_candidates(candidates: Iterable[FeatureCandidate]) -> pd.DataFrame:
     """Return a dataframe summarizing candidate statistics."""
     data = [
-        {"feature": c.name, "accuracy": c.value, "cost": c.cost}
+        {
+            "feature": c.name,
+            "accuracy": c.value,
+            "cost_ms": c.cost_ms,
+            "cost_seconds": c.cost_ms / 1000.0,
+        }
         for c in candidates
     ]
+    if not data:
+        return pd.DataFrame(
+            columns=["feature", "accuracy", "cost_ms", "cost_seconds"]
+        )
     return pd.DataFrame(data)

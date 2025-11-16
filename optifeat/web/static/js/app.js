@@ -25,7 +25,7 @@
 
     candidates.forEach((item, index) => {
         const value = item.accuracy;
-        const cost = item.cost;
+        const cost = item.cost_seconds ?? 0;
         const barHeight = (value / maxValue) * (height - padding * 2);
         const x = padding + index * barWidth;
         const y = height - padding - barHeight;

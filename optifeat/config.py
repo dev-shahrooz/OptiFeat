@@ -15,6 +15,8 @@ DATABASE_PATH = PROJECT_ROOT / "optifeat.db"
 # Modeling defaults
 DEFAULT_TARGET_COLUMN = "target"
 DEFAULT_TIME_BUDGET = 5.0  # seconds
+DEFAULT_MIN_COST_MS = 1  # milliseconds
+DEFAULT_SCALE_FACTOR_MS = 1  # milliseconds per DP unit
 
 # Web application configuration
 SECRET_KEY = "optifeat-secret-key"

@@ -10,11 +10,20 @@
         </div>
         <div class="form-group">
             <label for="target_column">ستون هدف:</label>
-            <input type="text" id="target_column" name="target_column" placeholder="target">
+            <input type="text" id="target_column" name="target_column" placeholder="target" value="{{ form_state.target_column }}">
         </div>
         <div class="form-group">
             <label for="time_budget">بودجه زمانی (ثانیه):</label>
-            <input type="number" id="time_budget" name="time_budget" step="0.0001" min="0" value="5" >
+            <input type="number" step="0.1" id="time_budget" name="time_budget" value="{{ form_state.time_budget }}">
+        </div>
+        <div class="form-group">
+            <label for="min_cost_ms">حداقل هزینه هر فیچر (میلی‌ثانیه):</label>
+            <input type="number" min="1" id="min_cost_ms" name="min_cost_ms" value="{{ form_state.min_cost_ms }}">
+        </div>
+        <div class="form-group">
+            <label for="scale_factor_ms">مقیاس زمانی DP (میلی‌ثانیه برای هر واحد):</label>
+            <input type="number" min="1" id="scale_factor_ms" name="scale_factor_ms" value="{{ form_state.scale_factor_ms }}">
+            <small>۱ یعنی کار بر حسب میلی‌ثانیه انجام می‌شود.</small>
         </div>
         <button type="submit" class="btn-primary">شروع پردازش</button>
     </form>
@@ -25,7 +34,12 @@
     <h2>نتایج اجرا</h2>
     <p><strong>دیتاست:</strong> {{ result.metadata.dataset_name }}</p>
     <p><strong>ستون هدف:</strong> {{ result.metadata.target_column }}</p>
+    <p><strong>بودجه زمانی:</strong> {{ result.metadata.time_budget }} ثانیه ({{ result.metadata.time_budget_ms }} ms)</p>
+    <p><strong>حداقل هزینه فیچر:</strong> {{ result.metadata.min_cost_ms }} ms</p>
+    <p><strong>مقیاس DP:</strong> {{ result.metadata.scale_factor_ms }} ms/unit</p>
     <p><strong>دقت مجموعه انتخاب شده:</strong> {{ '%.3f'|format(result.best_evaluation.accuracy) }}</p>
+    <p><strong>هزینه کل بررسی همه ویژگی‌ها:</strong> {{ '%.3f'|format(result.total_candidate_cost_seconds) }} ثانیه ({{ result.total_candidate_cost_ms }} ms)</p>
+    <p><strong>هزینه مجموعه انتخاب شده:</strong> {{ '%.3f'|format(result.selected_cost_seconds) }} ثانیه ({{ result.selected_cost_ms }} ms)</p>    
     <p><strong>ویژگی‌های انتخاب شده:</strong> {{ result.selected_features | join(', ') }}</p>
 
     <h3>پیشرفت پردازش</h3>
@@ -55,6 +69,8 @@
                     <th>نام دیتاست</th>
                     <th>دقت</th>
                     <th>بودجه زمانی</th>
+                    <th>هزینه کل ویژگی‌ها (ثانیه)</th>
+                    <th>هزینه انتخاب شده (ثانیه)</th>
                     <th>ویژگی‌ها</th>
                     <th>دانلود</th>
                 </tr>
@@ -66,6 +82,8 @@
                     <td>{{ item.dataset_name }}</td>
                     <td>{{ '%.3f'|format(item.accuracy) }}</td>
                     <td>{{ item.time_budget }}</td>
+                    <td>{{ '%.3f'|format(item.total_cost_all_features) }}</td>
+                    <td>{{ '%.3f'|format(item.selected_cost) }}</td>
                     <td>{{ item.selected_features | join(', ') }}</td>
                     <td><a class="btn-secondary" href="{{ url_for('dashboard.download_features', run_id=item.id) }}">دانلود</a></td>
                 </tr>

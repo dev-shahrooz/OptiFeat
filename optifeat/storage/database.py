@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS runs (
     dataset_name TEXT NOT NULL,
     target_column TEXT NOT NULL,
     time_budget REAL NOT NULL,
+    total_cost_all_features REAL NOT NULL,
+    selected_cost REAL NOT NULL,
     accuracy REAL NOT NULL,
     elapsed_time REAL NOT NULL,
     selected_features TEXT NOT NULL,
@@ -51,6 +53,8 @@ def record_run(
     elapsed_time: float,
     selected_features: Iterable[str],
     steps: Iterable[str],
+    total_cost_all_features: float,
+    selected_cost: float,
 ) -> None:
     """Persist a completed run to the database."""
     with get_connection() as conn:
@@ -60,16 +64,20 @@ def record_run(
                 dataset_name,
                 target_column,
                 time_budget,
+                total_cost_all_features,
+                selected_cost,
                 accuracy,
                 elapsed_time,
                 selected_features,
                 steps
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 dataset_name,
                 target_column,
                 time_budget,
+                total_cost_all_features,
+                selected_cost,
                 accuracy,
                 elapsed_time,
                 json.dumps(list(selected_features)),
@@ -84,8 +92,9 @@ def fetch_history(*, limit: int = 50, offset: int = 0) -> List[dict]:
     with get_connection() as conn:
         cursor = conn.execute(
             """
-            SELECT id, dataset_name, target_column, time_budget, accuracy,
-                   elapsed_time, selected_features, steps, created_at
+            SELECT id, dataset_name, target_column, time_budget,
+                   total_cost_all_features, selected_cost,
+                   accuracy, elapsed_time, selected_features, steps, created_at
             FROM runs
             ORDER BY created_at DESC
             LIMIT ? OFFSET ?
@@ -100,11 +109,13 @@ def fetch_history(*, limit: int = 50, offset: int = 0) -> List[dict]:
                     "dataset_name": row[1],
                     "target_column": row[2],
                     "time_budget": row[3],
-                    "accuracy": row[4],
-                    "elapsed_time": row[5],
-                    "selected_features": json.loads(row[6]),
-                    "steps": json.loads(row[7]),
-                    "created_at": row[8],
+                    "total_cost_all_features": row[4],
+                    "selected_cost": row[5],
+                    "accuracy": row[6],
+                    "elapsed_time": row[7],
+                    "selected_features": json.loads(row[8]),
+                    "steps": json.loads(row[9]),
+                    "created_at": row[10],
                 }
             )
         return results
@@ -115,8 +126,9 @@ def fetch_run(run_id: int) -> Optional[dict]:
     with get_connection() as conn:
         cursor = conn.execute(
             """
-            SELECT id, dataset_name, target_column, time_budget, accuracy,
-                   elapsed_time, selected_features, steps, created_at
+            SELECT id, dataset_name, target_column, time_budget,
+                   total_cost_all_features, selected_cost,
+                   accuracy, elapsed_time, selected_features, steps, created_at
             FROM runs
             WHERE id = ?
             """,
@@ -130,9 +142,11 @@ def fetch_run(run_id: int) -> Optional[dict]:
             "dataset_name": row[1],
             "target_column": row[2],
             "time_budget": row[3],
-            "accuracy": row[4],
-            "elapsed_time": row[5],
-            "selected_features": json.loads(row[6]),
-            "steps": json.loads(row[7]),
-            "created_at": row[8],
+            "total_cost_all_features": row[4],
+            "selected_cost": row[5],
+            "accuracy": row[6],
+            "elapsed_time": row[7],
+            "selected_features": json.loads(row[8]),
+            "steps": json.loads(row[9]),
+            "created_at": row[10],
         }

@@ -14,7 +14,13 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 
-from optifeat.config import HISTORY_PAGE_SIZE, UPLOAD_DIR
+from optifeat.config import (
+    DEFAULT_MIN_COST_MS,
+    DEFAULT_SCALE_FACTOR_MS,
+    DEFAULT_TIME_BUDGET,
+    HISTORY_PAGE_SIZE,
+    UPLOAD_DIR,
+)
 from optifeat.services.pipeline import OptimizationPipeline
 from optifeat.storage import database
 from optifeat.web.routes import bp
@@ -32,21 +38,40 @@ def allowed_file(filename: str) -> bool:
 def dashboard() -> Response:
     pipeline_result = None
     history = database.fetch_history(limit=HISTORY_PAGE_SIZE)
+    form_state = {
+        "target_column": request.form.get("target_column") or "",
+        "time_budget": request.form.get("time_budget")
+        or str(DEFAULT_TIME_BUDGET),
+        "min_cost_ms": request.form.get("min_cost_ms")
+        or str(DEFAULT_MIN_COST_MS),
+        "scale_factor_ms": request.form.get("scale_factor_ms")
+        or str(DEFAULT_SCALE_FACTOR_MS),
+    }
     if request.method == "POST":
         uploaded = request.files.get("dataset")
         target_column = request.form.get("target_column") or "target"
-        time_budget_raw = request.form.get("time_budget") or "5"
+        time_budget_raw = request.form.get("time_budget") or str(DEFAULT_TIME_BUDGET)
+        min_cost_raw = request.form.get("min_cost_ms") or str(DEFAULT_MIN_COST_MS)
+        scale_factor_raw = request.form.get("scale_factor_ms") or str(
+            DEFAULT_SCALE_FACTOR_MS
+        )
 
         if not uploaded or uploaded.filename == "":
             flash("لطفاً فایل داده را انتخاب کنید.", "error")
             return render_template(
-                "dashboard.html", history=history, result=pipeline_result
+                "dashboard.html",
+                history=history,
+                result=pipeline_result,
+                form_state=form_state,
             )
 
         if not allowed_file(uploaded.filename):
             flash("فقط فایل‌های CSV پشتیبانی می‌شوند.", "error")
             return render_template(
-                "dashboard.html", history=history, result=pipeline_result
+                "dashboard.html",
+                history=history,
+                result=pipeline_result,
+                form_state=form_state,
             )
 
         try:
@@ -54,7 +79,24 @@ def dashboard() -> Response:
         except ValueError:
             flash("بودجه زمانی باید یک عدد باشد.", "error")
             return render_template(
-                "dashboard.html", history=history, result=pipeline_result
+                "dashboard.html",
+                history=history,
+                result=pipeline_result,
+                form_state=form_state,
+            )
+
+        try:
+            min_cost_ms = int(min_cost_raw)
+            scale_factor_ms = int(scale_factor_raw)
+            if min_cost_ms <= 0 or scale_factor_ms <= 0:
+                raise ValueError
+        except ValueError:
+            flash("پارامترهای هزینه باید اعداد طبیعی مثبت باشند.", "error")
+            return render_template(
+                "dashboard.html",
+                history=history,
+                result=pipeline_result,
+                form_state=form_state,
             )
 
         filename = secure_filename(uploaded.filename)
@@ -67,6 +109,8 @@ def dashboard() -> Response:
                 dataset_path,
                 target_column=target_column,
                 time_budget=time_budget,
+                min_cost_ms=min_cost_ms,
+                scale_factor_ms=scale_factor_ms,
             )
             flash("بهینه‌سازی با موفقیت انجام شد.", "success")
         except Exception as exc:  # pylint: disable=broad-except
@@ -75,7 +119,12 @@ def dashboard() -> Response:
 
         history = database.fetch_history(limit=HISTORY_PAGE_SIZE)
 
-    return render_template("dashboard.html", history=history, result=pipeline_result)
+    return render_template(
+        "dashboard.html",
+        history=history,
+        result=pipeline_result,
+        form_state=form_state,
+    )
 
 
 @bp.route("/history")
