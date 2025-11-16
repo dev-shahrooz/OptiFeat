@@ -14,7 +14,7 @@
         </div>
         <div class="form-group">
             <label for="time_budget">بودجه زمانی (ثانیه):</label>
-            <input type="number" step="0.1" id="time_budget" name="time_budget" value="{{ form_state.time_budget }}">
+            <input type="number" min="0" id="time_budget" name="time_budget" value="{{ form_state.time_budget }}">
         </div>
         <div class="form-group">
             <label for="min_cost_ms">حداقل هزینه هر فیچر (میلی‌ثانیه):</label>
