@@ -14,7 +14,7 @@
         </div>
         <div class="form-group">
             <label for="time_budget">بودجه زمانی (ثانیه):</label>
-            <input type="number" min="0" id="time_budget" name="time_budget" value="{{ form_state.time_budget }}">
+            <input type="number" min="0" step="any" id="time_budget" name="time_budget" value="{{ form_state.time_budget }}">
         </div>
         <div class="form-group">
             <label for="min_cost_ms">حداقل هزینه هر فیچر (میلی‌ثانیه):</label>
@@ -84,7 +84,7 @@
                     <td>{{ item.time_budget }}</td>
                     <td>{{ '%.3f'|format(item.total_cost_all_features) }}</td>
                     <td>{{ '%.3f'|format(item.selected_cost) }}</td>
-                    <td>{{ item.selected_features | join(', ') }}</td>
+                    <td>{{ item.selected_features | length }}</td>
                     <td><a class="btn-secondary" href="{{ url_for('dashboard.download_features', run_id=item.id) }}">دانلود</a></td>
                 </tr>
             {% endfor %}

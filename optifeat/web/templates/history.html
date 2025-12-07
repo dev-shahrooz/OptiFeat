@@ -12,7 +12,20 @@
                 <p>بودجه زمانی: {{ item.time_budget }}</p>
                 <p>هزینه کل ویژگی‌ها: {{ '%.3f'|format(item.total_cost_all_features) }} ثانیه</p>
                 <p>هزینه انتخاب شده: {{ '%.3f'|format(item.selected_cost) }} ثانیه</p>
-                <p>ویژگی‌ها: {{ item.selected_features | join(', ') }}</p>
+                <p>ویژگی‌ها: </p>
+                <table style="border-collapse: collapse; width: 50%; border: 1px solid #000;">
+                    <tr>
+                        <th style="border: 1px solid #000; padding: 2px;">ردیف</th>
+                        <th style="border: 1px solid #000; padding: 2px;">نام ویژگی</th>
+                    </tr>
+
+                    {% for feature in item.selected_features %}
+                    <tr>
+                        <td style="border: 1px solid #000; padding: 2px; text-align: center;">{{ loop.index }}</td>
+                        <td style="border: 1px solid #000; padding: 2px; text-align: center;">{{ feature }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
                 <details>
                     <summary>گزارش مراحل</summary>
                     <ul>
